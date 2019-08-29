@@ -712,24 +712,32 @@ go
 
 
 
---go
---DROP trigger IF EXISTS [decrease_amount_for_instock_when_]
---go
---CREATE TRIGGER
--- [PopulateDatetime_for_order] ON [order]
--- FOR INSERT as
---update [order] 
---set [created_datetime] = getdate()
---where order_id =(select recipient_id
---from Inserted) ;
---go
+go
+DROP trigger IF EXISTS [decrease_amount_for_instock_when_createOrder]
+go
+CREATE TRIGGER
+ [decrease_amount_for_instock_when_createOrder] ON [order]
+ FOR INSERT as
+update [meal_instock]
+set [instock_amount] -= (select adults_num from recipient where recipient_id = (select recipient_id from Inserted))
+where [meal_type_id] = 1;
+update [meal_instock]
+set [instock_amount] -= (select adults_num from recipient where recipient_id = (select recipient_id from Inserted))
+where [meal_type_id] = 2;
+update [meal_instock]
+set [instock_amount] -= (select adults_num from recipient where recipient_id = (select recipient_id from Inserted))
+where [meal_type_id] = 3;
+go
+--test for decrease amount of instock
 
+--select * from [order]
+-- select * from meal_instock
+-- select * from recipient
+-- INSERT INTO [order] ([volunteer_id],[recipient_id]) VALUEs (null, 5);
+--  select * from meal_instock
+--  select * from [order]
 
-
-
-
-
-
+--不包括删除订单 返回库存， 如需要取消，
 
 
 ALTER TABLE [order] ADD CONSTRAINT [an order can assign a volunteer as delivery man] FOREIGN KEY ([volunteer_id]) REFERENCES [volunteer] ([volunteer_id]) ON UPDATE NO ACTION ON DELETE NO ACTION
