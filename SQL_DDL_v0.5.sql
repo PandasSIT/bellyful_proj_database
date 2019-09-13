@@ -664,6 +664,10 @@ go
 INSERT INTO [order_status]
 VALUES
 	('Cancelled');
+
+INSERT INTO [order_status]
+VALUES
+	('Completed');
 INSERT INTO [order_status]
 VALUES
 	('Created');
@@ -676,9 +680,6 @@ VALUES
 INSERT INTO [order_status]
 VALUES
 	('Delivering');
-INSERT INTO [order_status]
-VALUES
-	('Completed');
 
 --ALTER TABLE [order_status] ADD CONSTRAINT [content] UNIQUE CLUSTERED ([content])
 go
@@ -696,7 +697,7 @@ DROP TABLE IF EXISTS [order]
 CREATE TABLE [order]
 (
 	[order_id] Int identity(1,1),
-	[status_id] int default 2 NULL,
+	[status_id] int default 3 NULL,
 	[volunteer_id] Int NULL,
 	[recipient_id] Int NOT NULL,
 	[created_datetime] Datetime NULL,
@@ -751,10 +752,11 @@ ON [order]
 INSTEAD OF INSERT 
 AS
 Begin
--- 如果 type 1 的库存量 小于  该订单受助者家庭的成年人数量 +3 （低于3份 就无法创建订单  报错 ）
+-- 如果 type 1 的库存量 小于  该订单受助者家庭的成年人数量  （低于3份 就无法创建订单  报错 ）
 IF   (Select [instock_amount] from  [meal_instock]where [meal_type_id] = 1) < (0 +  (select adults_num from recipient where recipient_id = (select recipient_id from Inserted))) 
 or  (Select [instock_amount] from  [meal_instock]where [meal_type_id] = 2 ) < (0 +  (select adults_num from recipient where recipient_id = (select recipient_id from Inserted)))
 or  (Select [instock_amount] from  [meal_instock]where [meal_type_id] = 3 ) < (0 +  (select adults_num from recipient where recipient_id = (select recipient_id from Inserted)))
+or  (Select [instock_amount] from  [meal_instock]where [meal_type_id] = 4 ) < (0 +  (select adults_num from recipient where recipient_id = (select recipient_id from Inserted)))
 begin
 	RAISERROR (15600,-1,-1, 'Type 1 Meal of Instock !!');
 end
@@ -910,11 +912,11 @@ AS
 begin
 	if(select [status_id]
 	from [order]
-	where order_id =  @orderId) = 2 
+	where order_id =  @orderId) = 3 
 		--only Created stauts order can be pushed 
 		begin
 		update [order] 
-			set status_id = 3 
+			set status_id = 4 
 			where order_id = @orderID
 	;
 	END
@@ -937,8 +939,8 @@ CREATE PROCEDURE sp_PushAllOrders
 AS
 BEGIN
 	update [order] 
-set status_id = 3 
-where status_id = 2
+set status_id = 4 
+where status_id = 3
 ;
 END
 go
@@ -957,11 +959,11 @@ AS
 BEGIN
 	if(select [status_id]
 	from [order]
-	where order_id =  @orderId) = 3 
+	where order_id =  @orderId) = 4 
 	--only pushed stauts order can be taken by volunteer
 		begin
 		update [order] 
-			set status_id = 4,
+			set status_id = 5,
 			assign_datetime = getdate(),
 			[volunteer_id] = @deliveryMan 
 			where order_id = @orderId
@@ -988,14 +990,14 @@ BEGIN
 	if(
 	(select [status_id]
 		from [order]
-		where order_id =  @orderId) = 4
+		where order_id =  @orderId) = 5
 		and (select [volunteer_id]
 		from [order]
 		where order_id =  @orderId) = @deliveryMan
 	)--only assigned Order and order owner can pick up meal
 		begin
 		update [order] 
-			set status_id = 5,
+			set status_id = 6,
 			pickup_datetime = getdate()
 			where order_id = @orderId
 	;
@@ -1021,14 +1023,14 @@ BEGIN
 	if(
 	(select [status_id]
 		from [order]
-		where order_id =  @orderId) = 5
+		where order_id =  @orderId) = 6
 		and (select [volunteer_id]
 		from [order]
 		where order_id =  @orderId) = @deliveryMan
 	)--only delivering Order status and  order  owner can finish the order
 		begin
 		update [order] 
-			set status_id = 6,
+			set status_id = 2,
 			delivered_datetime = getdate()
 			where order_id = @orderId
 	;
@@ -1052,10 +1054,10 @@ BEGIN
 	if(
 	(select [status_id]
 		from [order]
-		where order_id =  @orderId) = 2
+		where order_id =  @orderId) = 3
 		or (select [status_id]
 		from [order]
-		where order_id =  @orderId) = 3
+		where order_id =  @orderId) = 4
 	)--only Created and pushed Order can be cancel
 		begin
 		update [order] 
@@ -1068,8 +1070,11 @@ BEGIN
 			set [instock_amount] += (select adults_num from recipient where recipient_id = (select recipient_id from [Order] where order_id =  @orderId))
 						where [meal_type_id] = 2;
 		update [meal_instock]
+			set [instock_amount] += (select adults_num from recipient where recipient_id = (select recipient_id from [Order] where order_id =  @orderId))
+						where [meal_type_id] = 3;
+		update [meal_instock]
 			set [instock_amount] += (select adults_num from recipient where recipient_id = (select recipient_id from [Order] where order_id =   @orderId))
-						where [meal_type_id] = 3; -- select * from [order]  TRUNCATE TABLE  [order] 
+						where [meal_type_id] = 4; -- select * from [order]  TRUNCATE TABLE  [order] 
 					
 	end
 	else 
@@ -1448,11 +1453,7 @@ INSERT INTO [order]([recipient_id])VALUES( 4);
 
 EXEC sp_CancelAnOrder 1
 EXEC sp_CancelAnOrder 2
-EXEC sp_CancelAnOrder 3
-EXEC sp_CancelAnOrder 4
-EXEC sp_CancelAnOrder 5
-EXEC sp_CancelAnOrder 6
-EXEC sp_CancelAnOrder 7
+
 
 INSERT INTO [order]([recipient_id])VALUES( 4);
 INSERT INTO [order]([recipient_id])VALUES( 5);
