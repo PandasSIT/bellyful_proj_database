@@ -78,7 +78,7 @@ CREATE TABLE [batch]
 (
 	[batch_id] Int identity(1,1),
 	[add_amount] Int NOT NULL,
-	[production_date] Date NOT NULL,
+	[production_date] Datetime  NULL,
 	[meal_type_id] int NOT NULL,
 	PRIMARY KEY ([batch_id])
 )
@@ -95,6 +95,24 @@ from Inserted) ;
 go
 --drop trigger [IncreaseInventoryforInsertBatch]
 
+go
+DROP trigger IF EXISTS [PopulateDatetime_for_batch]
+go
+CREATE TRIGGER
+ [PopulateDatetime_for_batch] ON [batch]
+ FOR INSERT as
+update [batch] 
+set [production_date] = getdate()
+where batch_id =(select batch_id
+from Inserted) ;
+go
+
+
+
+
+use [bellyful_v0.5]
+
+
 
 ALTER TABLE [batch] ADD CONSTRAINT [a batch has a meal type] 
 FOREIGN KEY ([meal_type_id]) REFERENCES [meal_type] ([meal_type_id]) 
@@ -102,31 +120,19 @@ ON DELETE CASCADE    ON UPDATE CASCADE
 go
 INSERT INTO [batch]
 VALUES
-	(7, '20190812 00:00:00 AM', 1);
+	(33,null, 1);
+
+	select * from batch
 INSERT INTO [batch]
 VALUES
-	(7, '20190812 00:00:00 AM', 1);
+	(33,null, 2);
 INSERT INTO [batch]
 VALUES
-	(11, '20190812 00:00:00 AM', 2);
+	(33,null, 3);
 INSERT INTO [batch]
 VALUES
-	(10, '20190812 00:00:00 AM', 4);
-INSERT INTO [batch]
-VALUES
-	(10, '20190812 00:00:00 AM', 3);
-INSERT INTO [batch]
-VALUES
-	(12, '20190818 00:00:00 AM', 3);
-INSERT INTO [batch]
-VALUES
-	(12, '20190818 00:00:00 AM', 2);
-INSERT INTO [batch]
-VALUES
-	(9, '20190819 00:00:00 AM', 4);
-INSERT INTO [batch]
-VALUES
-	(13, '20190819 00:00:00 AM', 1);
+	(33,null, 4);
+
 --select * from [batch]
 go
 
@@ -610,27 +616,27 @@ VALUES
 		'9810', '021-2221111', 'asd@asd.com', 0, 2, 2, null, 2, 1, 0, 0, 1, null, null, null, null);
 INSERT INTO [recipient]
 VALUES
-	('Edwiin', 'Noel' , '121 Tay St ', 'Invercargill',
+	('Edwiin', 'Noel' , '133 Tay St ', 'Invercargill',
 		'9810', '021-2221111', 'asd@asd.com', 1, 2, 1, null, 5, 2, 0, 1, 1, null, null, null, null);
 INSERT INTO [recipient]
 VALUES
-	('Steward', 'Franklin' , '221 Tay St ', 'Invercargill',
+	('Steward', 'Franklin' , '455 Dee St ', 'Invercargill',
 		'9810', '021-2221111', 'asd@asd.com', 0, 2, 2, null, 2, 1, 1, 0, 2, null, null, null, null);
 INSERT INTO [recipient]
 VALUES
-	('Olivia', 'Childe' , '21 Tay St ', 'Invercargill',
+	('Olivia', 'Childe' , '101 Doon St', 'Invercargill',
 		'9810', '021-2221111', 'asd@asd.com', 1, 2, 1, null, 3, 1, 0, 1, 1, null, null, null, null);
 INSERT INTO [recipient]
 VALUES
-	('Verna ', 'Malory' , '51 Tay St ', 'Invercargill',
+	('Verna ', 'Malory' , '244 Elles Rd ', 'Invercargill',
 		'9810', '021-2221111', 'asd@asd.com', 0, 2, 1, null, 2, 3, 1, 0, 3, null, null, null, null);
 INSERT INTO [recipient]
 VALUES
-	('Bess ', 'FitzGerald' , '121 Tay St ', 'Invercargill',
+	('Bess ', 'FitzGerald' , '491 Tay St ', 'Invercargill',
 		'9810', '021-2221111', 'asd@asd.com', 0, 2, 3, null, 3, 1, 0, 0, 1, null, null, null, null);
 INSERT INTO [recipient]
 VALUES
-	('Olga', 'Daniel' , '25 Tay St ', 'Invercargill',
+	('Olga', 'Daniel' , '112 Gala St ', 'Invercargill',
 		'9810', '021-2221111', 'asd@asd.com', 0, 2, 3, null, 3, 1, 0, 0, 1, null, null, null, null);
 
 --DELETE FROM [recipient]
@@ -1008,6 +1014,27 @@ BEGIN
 	end
 END
 go
+
+
+go
+DROP PROCEDURE IF EXISTS sp_PickupAllMealForAVolunteer
+go
+CREATE PROCEDURE sp_PickupAllMealForAVolunteer
+	@deliveryMan int
+AS
+BEGIN
+	update [order] 
+set status_id = 6 ,
+pickup_datetime = getdate()
+where status_id = 5 and volunteer_id = @deliveryMan
+
+END
+
+go
+
+
+exec sp_ListAllOrder
+
 --Example:exec  sp_PickupMeal 4,1002 ;
 --drop PROCEDURE sp_PickupMeal
 
