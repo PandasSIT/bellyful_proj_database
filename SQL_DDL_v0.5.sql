@@ -922,7 +922,8 @@ begin
 		--only Created stauts order can be pushed 
 		begin
 		update [order] 
-			set status_id = 4 
+			set status_id = 4,
+			[created_datetime] = getdate()
 			where order_id = @orderID
 	;
 	END
@@ -945,7 +946,8 @@ CREATE PROCEDURE sp_PushAllOrders
 AS
 BEGIN
 	update [order] 
-set status_id = 4 
+set status_id = 4 ,
+[created_datetime] = getdate()
 where status_id = 3
 ;
 END
@@ -1255,6 +1257,8 @@ BEGIN
 	from [order_status];
 --green
 end
+
+use [bellyful_v0.5]
 go
 DROP PROCEDURE IF EXISTS sp_Add_Volunteer
 go
@@ -1264,9 +1268,11 @@ AS
 BEGIN
 	INSERT INTO [volunteer]
 	VALUES
-		(@name, ' ', '12-aug-1999', 'asd@asd.com', '0212912123', null, '111 Tay St ', 'Invercargill', null, 2, 3, 1,0);
+		(@name,' ', '19700101', @name, ' ', null, ' ', ' ', null, null, null, null,1);
 END
 go
+exec sp_Add_Volunteer 'sda@d.cfom'
+select * from Volunteer
 DROP PROCEDURE IF EXISTS sp_Add_Recipient 
 go
 CREATE PROCEDURE sp_Add_Recipient
@@ -1290,6 +1296,7 @@ BEGIN
 TRUNCATE TABLE [Batch]
 TRUNCATE TABLE [Order]
 TRUNCATE TABLE [meal_instock]
+TRUNCATE TABLE Volunteer
 
 INSERT INTO [meal_instock]
 VALUES
@@ -1423,7 +1430,7 @@ exec sp_dropAllTables
 
 --======================
 --1 add new  volunteer
-exec sp_Add_Volunteer 'bellyful'
+exec sp_Add_Volunteer 'bellyful@sa.com'
 exec sp_ListAllVolunteer
 -- add new recipient
 exec sp_Add_Recipient  'BIT'
